@@ -37,7 +37,7 @@ def _best_segment(t: float, segments: list[Segment]) -> int | None:
                                  abs(t - segments[i].end)))
 
 
-def transcribe(vocals_path: str, segments: list[Segment]) -> list[Segment]:
+def transcribe(vocals_path: str, segments: list[Segment]) -> tuple[list[Segment], str]:
     from faster_whisper import WhisperModel
     import torch
 

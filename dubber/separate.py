@@ -25,6 +25,10 @@ def separate(audio_path: str, enabled: bool = True):
     model = get_model("htdemucs")
     model.eval()
     wav, sr = torchaudio.load(audio_path)
+    # htdemucs 44.1kHz'de eğitildi; modelin beklediği örnekleme hızına getir.
+    if sr != model.samplerate:
+        wav = torchaudio.functional.resample(wav, sr, model.samplerate)
+        sr = model.samplerate
     if wav.shape[0] == 1:
         wav = wav.repeat(2, 1)  # demucs stereo bekler
     device = "cuda" if torch.cuda.is_available() else "cpu"

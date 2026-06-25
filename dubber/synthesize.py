@@ -40,7 +40,8 @@ def _extract_reference(vocals_path: str, seg: Segment, speaker_id: str) -> Path:
 def _fit_duration(clip_path: Path, target: float) -> None:
     import soundfile as sf
     info = sf.info(str(clip_path))
-    factor = timing_factor(info.duration, target)
+    # Aşırı hızlandırma sesi bozar; MAX_ATEMPO ile sınırla (spec 5.4).
+    factor = min(timing_factor(info.duration, target), config.MAX_ATEMPO)
     if factor > 1.0:
         tmp = clip_path.with_suffix(".fit.wav")
         run_ffmpeg(["-i", str(clip_path), "-filter:a",
