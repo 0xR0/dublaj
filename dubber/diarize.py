@@ -28,8 +28,12 @@ def diarize(vocals_path: str, forced: str | None = None) -> list[Segment]:
 
 def _diarize_pyannote(vocals_path: str, hf_token: str) -> list[Segment]:
     from pyannote.audio import Pipeline
-    pipeline = Pipeline.from_pretrained(
-        "pyannote/speaker-diarization-3.1", use_auth_token=hf_token)
+    try:
+        pipeline = Pipeline.from_pretrained(
+            "pyannote/speaker-diarization-3.1", token=hf_token)
+    except TypeError:
+        pipeline = Pipeline.from_pretrained(
+            "pyannote/speaker-diarization-3.1", use_auth_token=hf_token)
     import torch
     if torch.cuda.is_available():
         pipeline.to(torch.device("cuda"))
@@ -56,7 +60,7 @@ def _diarize_speechbrain(vocals_path: str) -> list[Segment]:
     import torch
     for i in range(0, max(1, len(y) - win), hop):
         chunk = torch.tensor(y[i:i + win]).unsqueeze(0)
-        emb = encoder.encode_batch(chunk).squeeze().detach().numpy()
+        emb = encoder.encode_batch(chunk).squeeze().detach().cpu().numpy()
         embs.append(emb)
         times.append((i / sr, (i + win) / sr))
     embs = np.vstack(embs)
