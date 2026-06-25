@@ -26,7 +26,7 @@ def reconstruct(results: list[tuple], background_path: str | None,
 
     if background_path:
         bg = AudioSegment.from_file(background_path)
-        bg = bg - 6  # arka planı biraz kıs
+        bg = bg + config.BACKGROUND_GAIN_DB  # arka plan miksaj seviyesi
         base = bg.overlay(base) if len(bg) >= len(base) else base.overlay(bg)
 
     base = base.normalize()

@@ -44,6 +44,14 @@ def translate_segments(segments: list[Segment], src_lang: str) -> list[Segment]:
             continue
         enc = tok(s.text, return_tensors="pt", truncation=True,
                   max_length=512).to(device)
-        out = model.generate(**enc, forced_bos_token_id=bos, max_length=512)
+        out = model.generate(**enc, forced_bos_token_id=bos, max_length=512,
+                             num_beams=5, no_repeat_ngram_size=3,
+                             length_penalty=1.0)
         s.text_tr = tok.batch_decode(out, skip_special_tokens=True)[0]
+
+    del model
+    if device == "cuda":
+        import gc
+        gc.collect()
+        torch.cuda.empty_cache()
     return segments
