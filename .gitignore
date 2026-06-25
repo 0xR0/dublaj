@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+temp/*
+output/*
+models/*
+logs/*
+input/*
+!**/.gitkeep
+.venv/
+*.wav
+*.mp3

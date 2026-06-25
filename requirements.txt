@@ -1,0 +1,14 @@
+faster-whisper
+pyannote.audio
+speechbrain
+demucs
+TTS
+edge-tts
+transformers
+sentencepiece
+torch
+torchaudio
+librosa
+numpy
+pydub
+soundfile
