@@ -2,7 +2,7 @@ faster-whisper
 pyannote.audio
 speechbrain
 demucs
-TTS
+coqui-tts
 edge-tts
 transformers
 sentencepiece
