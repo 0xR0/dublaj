@@ -11,14 +11,18 @@ logger = get_logger()
 def classify_from_f0(f0_hz: float) -> str:
     if f0_hz is None or math.isnan(f0_hz):
         return "unknown"
-    return "male" if f0_hz < config.GENDER_F0_THRESHOLD_HZ else "female"
+    if f0_hz < config.GENDER_F0_THRESHOLD_HZ:
+        return "male"
+    if f0_hz < config.CHILD_F0_THRESHOLD_HZ:
+        return "female"
+    return "child"
 
 
 def _mean_f0(y, sr) -> float:
     import librosa
     import numpy as np
     f0, voiced, _ = librosa.pyin(
-        y, fmin=70, fmax=400, sr=sr)
+        y, fmin=70, fmax=500, sr=sr)
     vals = f0[~np.isnan(f0)]
     return float(np.median(vals)) if len(vals) else math.nan
 

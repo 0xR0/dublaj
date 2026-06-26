@@ -1,6 +1,6 @@
 # tests/test_synthesize.py
 from dubber.synthesize import (pick_reference_segment, timing_factor,
-                               edge_voice_for, build_preset_map)
+                               edge_voice_for, build_preset_map, plan_voices)
 from dubber.models import Segment
 from dubber import config
 
@@ -46,3 +46,37 @@ def test_build_preset_map_falls_back_to_available():
 
 def test_build_preset_map_empty_available():
     assert build_preset_map({"A"}, {"A": "male"}, []) == {}
+
+
+def test_edge_voice_for_child_high_pitch():
+    voice, pitch = edge_voice_for("child", 0)
+    assert voice == config.EDGE_VOICES["child"]
+    assert pitch == config.EDGE_CHILD_PITCH
+
+
+def test_plan_voices_child_always_cloned():
+    # preset modunda bile çocuk klonlanır, yetişkinler preset alır
+    ids = {"A", "B", "C"}
+    genders = {"A": "male", "B": "female", "C": "child"}
+    available = config.XTTS_VOICES["female"] + config.XTTS_VOICES["male"]
+    preset_ids, clone_ids = plan_voices(ids, genders, available,
+                                        mode="preset", child_mode="xtts")
+    assert "C" in clone_ids and "C" not in preset_ids
+    assert {"A", "B"} <= preset_ids
+
+
+def test_plan_voices_clone_mode_everyone_cloned():
+    ids = {"A", "B"}
+    genders = {"A": "male", "B": "female"}
+    preset_ids, clone_ids = plan_voices(ids, genders, ["X"],
+                                        mode="clone", child_mode="xtts")
+    assert preset_ids == set()
+    assert clone_ids == ids
+
+
+def test_plan_voices_child_off_treated_as_adult():
+    ids = {"C"}
+    available = config.XTTS_VOICES["female"]
+    preset_ids, clone_ids = plan_voices(ids, {"C": "child"}, available,
+                                        mode="preset", child_mode="off")
+    assert "C" in preset_ids

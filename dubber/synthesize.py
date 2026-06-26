@@ -43,6 +43,8 @@ def build_preset_map(speaker_ids, genders: dict[str, str],
 
 def edge_voice_for(gender: str, speaker_index: int):
     voice = config.EDGE_VOICES.get(gender, config.EDGE_VOICES["male"])
+    if gender == "child":
+        return voice, config.EDGE_CHILD_PITCH
     offsets = config.EDGE_PITCH_OFFSETS
     pitch = offsets[speaker_index % len(offsets)]
     return voice, pitch
@@ -69,14 +71,32 @@ def _fit_duration(clip_path: Path, target: float) -> None:
         tmp.replace(clip_path)
 
 
+def plan_voices(speaker_ids, genders: dict[str, str], available,
+                mode: str, child_mode: str) -> tuple[set, set]:
+    """Hangi konuşmacılar hazır ses (preset), hangileri klonlama (clone)
+    kullanacak? Çocuklar (child_mode='xtts') her zaman klonlanır ki kendi
+    çocuk sesleri korunsun. Döner: (preset_ids, clone_ids)."""
+    child_ids = {spk for spk in speaker_ids
+                 if child_mode == "xtts" and genders.get(spk) == "child"}
+    if mode == "preset" and available:
+        preset_ids = speaker_ids - child_ids
+    else:
+        preset_ids = set()
+    clone_ids = speaker_ids - preset_ids
+    return preset_ids, clone_ids
+
+
 def synthesize(segments: list[Segment], genders: dict[str, str],
                vocals_path: str, engine: str = "xtts",
-               voice_mode: str | None = None) -> list[tuple]:
+               voice_mode: str | None = None,
+               child_voice: str | None = None) -> list[tuple]:
     """Her segment için TR ses üretir. Döner: [(Segment, clip_path), ...]
-    voice_mode: 'preset' (hazır seslerden ata) | 'clone' (kişinin kendi sesi)."""
+    voice_mode: yetişkin için 'clone' (kendi sesi) | 'preset' (hazır ses).
+    child_voice: çocuk için 'xtts' (kendi sesini klonla) | 'off'."""
     out_dir = config.TEMP_DIR / "tts"
     out_dir.mkdir(parents=True, exist_ok=True)
     mode = voice_mode or config.XTTS_VOICE_MODE
+    child_mode = child_voice or config.CHILD_VOICE_MODE
 
     references: dict[str, Path] = {}
     preset_map: dict[str, str] = {}
@@ -92,17 +112,20 @@ def synthesize(segments: list[Segment], genders: dict[str, str],
                 "cuda" if torch.cuda.is_available() else "cpu")
             speaker_ids = set(s.speaker_id for s in segments)
             available = list(getattr(tts, "speakers", None) or [])
-            if mode == "preset" and available:
-                preset_map = build_preset_map(speaker_ids, genders, available)
+            if mode == "preset" and not available:
+                logger.warning("XTTS hazır ses listesi boş, klonlamaya dönülüyor")
+            preset_ids, clone_ids = plan_voices(
+                speaker_ids, genders, available, mode, child_mode)
+            if preset_ids:
+                preset_map = build_preset_map(preset_ids, genders, available)
                 for spk, name in sorted(preset_map.items()):
-                    logger.info("Ses ataması %s -> %s", spk, name)
-            else:
-                if mode == "preset":
-                    logger.warning("XTTS hazır ses listesi boş, klonlamaya dönülüyor")
-                for spk in speaker_ids:
-                    ref_seg = pick_reference_segment(segments, spk)
-                    if ref_seg and ref_seg.duration >= config.MIN_REF_SECONDS:
-                        references[spk] = _extract_reference(vocals_path, ref_seg, spk)
+                    logger.info("Ses ataması (preset) %s -> %s", spk, name)
+            for spk in clone_ids:
+                ref_seg = pick_reference_segment(segments, spk)
+                if ref_seg and ref_seg.duration >= config.MIN_REF_SECONDS:
+                    references[spk] = _extract_reference(vocals_path, ref_seg, spk)
+                    logger.info("Ses ataması (klon) %s (%s)", spk,
+                                genders.get(spk, "unknown"))
         except Exception as e:
             logger.warning("XTTS yüklenemedi (%s), Edge TTS'e geçiliyor", e)
             use_xtts = False
