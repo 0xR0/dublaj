@@ -14,6 +14,36 @@ c.append(nbf.v4.new_markdown_cell(
     "- `HF_TOKEN` → (opsiyonel) pyannote için. Eklemezsen speechbrain kullanılır.\n"
     "- `GITHUB_TOKEN` → sadece 8. hücrede (sonucu repoya geri push) gerekir."))
 
+c.append(nbf.v4.new_markdown_cell(
+    "## ⭐ TEK HÜCRE — hepsi bir arada\n"
+    "Sadece `YT_URL`'yi değiştir ve **bu hücreyi çalıştır**. "
+    "Clone + kurulum + indirme + dublaj tek seferde yapılır "
+    "(`dub.py` ayrı process'te çalışır, restart gerekmez). "
+    "Adım adım gitmek istersen aşağıdaki 1-8 hücrelerini kullan."))
+c.append(nbf.v4.new_code_cell(
+    'YT_URL = "https://youtu.be/2hsSEWguOQE"  # <-- linki degistir\n'
+    'import os\n'
+    'try:\n'
+    '    from google.colab import userdata\n'
+    "    os.environ['HF_TOKEN'] = userdata.get('HF_TOKEN') or ''\n"
+    'except Exception:\n'
+    "    os.environ['HF_TOKEN'] = ''\n"
+    "os.environ['COQUI_TOS_AGREED'] = '1'\n"
+    "print('HF_TOKEN ayarli mi:', bool(os.environ['HF_TOKEN']))\n"
+    '!apt-get -qq install -y ffmpeg\n'
+    '!pip install -q yt-dlp\n'
+    '%cd /content\n'
+    '!rm -rf dublaj\n'
+    '!git clone -q https://github.com/0xR0/dublaj.git\n'
+    '%cd dublaj\n'
+    '!pip install -q -r requirements.txt\n'
+    '!yt-dlp -x --audio-format mp3 --audio-quality 0 '
+    '-o "input/yt_audio.%(ext)s" "$YT_URL"\n'
+    '!python dub.py input/yt_audio.mp3\n'
+    '!ls -la output/\n'
+    "print('--- run.log (son 30 satir) ---')\n"
+    '!tail -n 30 logs/run.log'))
+
 c.append(nbf.v4.new_markdown_cell("## 1. Repo + sistem bağımlılıkları"))
 c.append(nbf.v4.new_code_cell(
     "!apt-get -qq install -y ffmpeg\n"
