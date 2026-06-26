@@ -14,15 +14,13 @@ c.append(nbf.v4.new_markdown_cell(
     "- `HF_TOKEN` → (opsiyonel) pyannote için. Eklemezsen speechbrain kullanılır.\n"
     "- `GITHUB_TOKEN` → sadece 8. hücrede (sonucu repoya geri push) gerekir."))
 
-c.append(nbf.v4.new_markdown_cell("## 1. Repo (private) + sistem bağımlılıkları"))
+c.append(nbf.v4.new_markdown_cell("## 1. Repo + sistem bağımlılıkları"))
 c.append(nbf.v4.new_code_cell(
-    "from google.colab import userdata\n"
-    "GITHUB_TOKEN = userdata.get('GITHUB_TOKEN')\n"
     "!apt-get -qq install -y ffmpeg\n"
     "!pip install -q yt-dlp\n"
     "%cd /content\n"
     "!rm -rf dublaj\n"
-    "!git clone https://{GITHUB_TOKEN}@github.com/0xR0/dublaj.git\n"
+    "!git clone https://github.com/0xR0/dublaj.git\n"
     "%cd dublaj"))
 
 c.append(nbf.v4.new_markdown_cell("## 2. Python bağımlılıkları (birkaç dakika)"))
