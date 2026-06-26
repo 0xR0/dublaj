@@ -4,7 +4,7 @@ from dubber.preprocess import preprocess
 from dubber.separate import separate
 from dubber.diarize import diarize
 from dubber.gender import assign_genders
-from dubber.transcribe import transcribe
+from dubber.transcribe import transcribe, merge_into_sentences
 from dubber.translate import translate_segments
 from dubber.synthesize import synthesize
 from dubber.reconstruct import reconstruct
@@ -33,6 +33,8 @@ def run(input_path: str, output_path: str, *, background: bool = True,
                     format_timestamp(s.start), format_timestamp(s.end))
 
     segments, src_lang = transcribe(str(vocals), segments)
+    segments = merge_into_sentences(segments)
+    logger.info("Cümle birleştirme sonrası %d segment", len(segments))
     segments = translate_segments(segments, src_lang)
     results = synthesize(segments, genders, str(vocals), engine=tts_engine,
                          voice_mode=voice_mode, child_voice=child_voice)

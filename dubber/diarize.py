@@ -37,7 +37,9 @@ def _diarize_pyannote(vocals_path: str, hf_token: str) -> list[Segment]:
     import torch
     if torch.cuda.is_available():
         pipeline.to(torch.device("cuda"))
-    annotation = pipeline(vocals_path)
+    output = pipeline(vocals_path)
+    # pyannote.audio 4.x DiarizeOutput döner; Annotation .speaker_diarization'da.
+    annotation = getattr(output, "speaker_diarization", output)
     segs = []
     for turn, _, speaker in annotation.itertracks(yield_label=True):
         segs.append(Segment(start=turn.start, end=turn.end, speaker_id=speaker))

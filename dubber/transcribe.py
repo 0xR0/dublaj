@@ -1,9 +1,42 @@
 # dubber/transcribe.py
+from dataclasses import replace
+
 from dubber import config
 from dubber.models import Segment
 from dubber.utils import get_logger
 
 logger = get_logger()
+
+_SENTENCE_END = (".", "!", "?", "…")
+
+
+def _ends_sentence(text: str) -> bool:
+    return text.rstrip().endswith(_SENTENCE_END)
+
+
+def merge_into_sentences(segments: list[Segment],
+                         max_seconds: float | None = None) -> list[Segment]:
+    """Aynı konuşmacının ardışık parçalarını, cümle sonu noktalamasına kadar
+    tek bir segmentte birleştirir. Böylece çeviri yarım cümle yerine tam cümle
+    görür (daha anlamlı) ve daha az/uzun TTS klibi oluşur (daha az hızlandırma).
+    Konuşmacı değişiminde, cümle bittiğinde veya süre sınırında keser."""
+    cap = config.MAX_SENTENCE_SECONDS if max_seconds is None else max_seconds
+    merged: list[Segment] = []
+    cur: Segment | None = None
+    for s in segments:
+        joinable = (cur is not None and s.speaker_id == cur.speaker_id
+                    and not _ends_sentence(cur.text)
+                    and (s.end - cur.start) <= cap)
+        if joinable:
+            cur = replace(cur, end=s.end,
+                          text=(cur.text + " " + s.text).strip())
+        else:
+            if cur is not None:
+                merged.append(cur)
+            cur = replace(s)
+    if cur is not None:
+        merged.append(cur)
+    return merged
 
 
 def assign_words_to_segments(words: list[dict],

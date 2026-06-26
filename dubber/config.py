@@ -14,6 +14,7 @@ CHILD_F0_THRESHOLD_HZ = 255.0    # üstü çocuk (female ile child arası sını
 MIN_REF_SECONDS = 3.0            # XTTS referansı için alt sınır
 PREFERRED_REF_SECONDS = 6.0     # tercih edilen referans süresi
 MAX_ATEMPO = 1.3                # zamanlama sığdırmada üst hız sınırı
+MAX_SENTENCE_SECONDS = 12.0     # çeviri için cümle birleştirmede üst süre sınırı
 BACKGROUND_GAIN_DB = -2         # arka plan/müzik miksaj seviyesi (yüksek = daha duyulur)
 
 # Yetişkin XTTS ses modu: "clone" (kişinin kendi/orijinal sesi) | "preset" (hazır seslerden ata)
