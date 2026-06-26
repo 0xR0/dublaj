@@ -21,6 +21,26 @@ def timing_factor(generated: float, target: float) -> float:
     return round(generated / target, 3)
 
 
+def build_preset_map(speaker_ids, genders: dict[str, str],
+                     available) -> dict[str, str]:
+    """Her konuşmacıya cinsiyetine uygun, mümkün olduğunca farklı bir XTTS
+    hazır sesi atar. `available`: modelin desteklediği ses adları."""
+    available_set = set(available)
+    used: set[str] = set()
+    result: dict[str, str] = {}
+    for spk in sorted(speaker_ids):
+        g = genders.get(spk, "unknown")
+        prefs = [n for n in config.XTTS_VOICES.get(g, []) if n in available_set]
+        pool = prefs or list(available)
+        if not pool:
+            continue
+        choice = next((n for n in pool if n not in used),
+                      pool[len(used) % len(pool)])
+        used.add(choice)
+        result[spk] = choice
+    return result
+
+
 def edge_voice_for(gender: str, speaker_index: int):
     voice = config.EDGE_VOICES.get(gender, config.EDGE_VOICES["male"])
     offsets = config.EDGE_PITCH_OFFSETS
@@ -50,12 +70,16 @@ def _fit_duration(clip_path: Path, target: float) -> None:
 
 
 def synthesize(segments: list[Segment], genders: dict[str, str],
-               vocals_path: str, engine: str = "xtts") -> list[tuple]:
-    """Her segment için TR ses üretir. Döner: [(Segment, clip_path), ...]"""
+               vocals_path: str, engine: str = "xtts",
+               voice_mode: str | None = None) -> list[tuple]:
+    """Her segment için TR ses üretir. Döner: [(Segment, clip_path), ...]
+    voice_mode: 'preset' (hazır seslerden ata) | 'clone' (kişinin kendi sesi)."""
     out_dir = config.TEMP_DIR / "tts"
     out_dir.mkdir(parents=True, exist_ok=True)
+    mode = voice_mode or config.XTTS_VOICE_MODE
 
     references: dict[str, Path] = {}
+    preset_map: dict[str, str] = {}
     use_xtts = engine == "xtts"
     tts = None
     if use_xtts:
@@ -66,10 +90,19 @@ def synthesize(segments: list[Segment], genders: dict[str, str],
             import torch
             tts = CoquiTTS(config.XTTS_MODEL).to(
                 "cuda" if torch.cuda.is_available() else "cpu")
-            for spk in set(s.speaker_id for s in segments):
-                ref_seg = pick_reference_segment(segments, spk)
-                if ref_seg and ref_seg.duration >= config.MIN_REF_SECONDS:
-                    references[spk] = _extract_reference(vocals_path, ref_seg, spk)
+            speaker_ids = set(s.speaker_id for s in segments)
+            available = list(getattr(tts, "speakers", None) or [])
+            if mode == "preset" and available:
+                preset_map = build_preset_map(speaker_ids, genders, available)
+                for spk, name in sorted(preset_map.items()):
+                    logger.info("Ses ataması %s -> %s", spk, name)
+            else:
+                if mode == "preset":
+                    logger.warning("XTTS hazır ses listesi boş, klonlamaya dönülüyor")
+                for spk in speaker_ids:
+                    ref_seg = pick_reference_segment(segments, spk)
+                    if ref_seg and ref_seg.duration >= config.MIN_REF_SECONDS:
+                        references[spk] = _extract_reference(vocals_path, ref_seg, spk)
         except Exception as e:
             logger.warning("XTTS yüklenemedi (%s), Edge TTS'e geçiliyor", e)
             use_xtts = False
@@ -83,11 +116,12 @@ def synthesize(segments: list[Segment], genders: dict[str, str],
         clip = out_dir / f"seg_{idx:04d}.wav"
         spk = seg.speaker_id
         ok = False
-        if use_xtts and spk in references:
+        if use_xtts and (spk in preset_map or spk in references):
             try:
+                kwargs = ({"speaker": preset_map[spk]} if spk in preset_map
+                          else {"speaker_wav": str(references[spk])})
                 tts.tts_to_file(text=seg.text_tr, language="tr",
-                                speaker_wav=str(references[spk]),
-                                file_path=str(clip))
+                                file_path=str(clip), **kwargs)
                 ok = True
             except Exception as e:
                 logger.warning("XTTS segment %d başarısız (%s), Edge yedeği", idx, e)

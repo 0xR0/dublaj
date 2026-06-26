@@ -15,6 +15,16 @@ PREFERRED_REF_SECONDS = 6.0     # tercih edilen referans süresi
 MAX_ATEMPO = 1.3                # zamanlama sığdırmada üst hız sınırı
 BACKGROUND_GAIN_DB = -2         # arka plan/müzik miksaj seviyesi (yüksek = daha duyulur)
 
+# XTTS ses modu: "preset" (hazır seslerden konuşmacıya ata) | "clone" (kişinin kendi sesi)
+XTTS_VOICE_MODE = "preset"
+# Cinsiyete göre tercih edilen XTTS-v2 hazır sesleri (model destekliyorsa kullanılır)
+XTTS_VOICES = {
+    "female": ["Claribel Dervla", "Daisy Studious", "Sofia Hellen",
+               "Alison Dietlinde", "Tammie Ema"],
+    "male": ["Andrew Chipper", "Damien Black", "Viktor Eka",
+             "Luis Moray", "Aaron Dreschner"],
+}
+
 # Edge TTS yedeği için cinsiyet→ses
 EDGE_VOICES = {"male": "tr-TR-AhmetNeural", "female": "tr-TR-EmelNeural"}
 # Aynı cinsiyette çoklu konuşmacı için Edge pitch ofsetleri (Hz)

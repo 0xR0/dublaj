@@ -19,7 +19,8 @@ def _audio_duration(path: str) -> float:
 
 
 def run(input_path: str, output_path: str, *, background: bool = True,
-        diarizer: str | None = None, tts_engine: str = "xtts") -> str:
+        diarizer: str | None = None, tts_engine: str = "xtts",
+        voice_mode: str | None = None) -> str:
     logger.info("=== Dublaj başlıyor: %s ===", input_path)
 
     audio16k = preprocess(input_path)
@@ -33,7 +34,8 @@ def run(input_path: str, output_path: str, *, background: bool = True,
 
     segments, src_lang = transcribe(str(vocals), segments)
     segments = translate_segments(segments, src_lang)
-    results = synthesize(segments, genders, str(vocals), engine=tts_engine)
+    results = synthesize(segments, genders, str(vocals), engine=tts_engine,
+                         voice_mode=voice_mode)
 
     total = _audio_duration(str(audio16k))
     out = reconstruct(results, bg, total, output_path)

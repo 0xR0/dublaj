@@ -16,6 +16,8 @@ def parse_args(argv=None):
                    help="Seslendirme motoru")
     p.add_argument("--diarizer", choices=["pyannote", "speechbrain"],
                    default=None, help="Diarization motorunu zorla")
+    p.add_argument("--voices", choices=["preset", "clone"], default=None,
+                   help="XTTS ses modu: preset (hazır sesler) | clone (kendi sesi)")
     p.set_defaults(background=True)
     return p.parse_args(argv)
 
@@ -24,7 +26,7 @@ def main(argv=None):
     args = parse_args(argv)
     output = args.output or str(config.OUTPUT_DIR / "output_dubbed.mp3")
     run(args.input, output, background=args.background,
-        diarizer=args.diarizer, tts_engine=args.tts)
+        diarizer=args.diarizer, tts_engine=args.tts, voice_mode=args.voices)
 
 
 if __name__ == "__main__":
